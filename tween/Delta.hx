@@ -298,7 +298,7 @@ class Delta
 		return s;
 	}
 	
-	static function runTrigger(t:String) {
+	public static function runTrigger(t:String) {
 		for (s in sequences) {
 			s.runTrigger(t);
 		}
