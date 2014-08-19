@@ -167,6 +167,19 @@ private class Tween {
 		remove();
 	}
 	
+	public function abort():Void {
+		getSequence().abort();
+	}
+	
+	public function getSequence():TweenSequence {
+		var n = prev;
+		while (n != null) {
+			if (n.prev == null) return cast n;
+			n = n.prev;
+		}
+		return null;
+	}
+	
 	public function step(delta:Float):Tween {
 		var allComplete:Bool = true;
 		if (properties != null) {
@@ -197,6 +210,28 @@ private class TweenSequence extends Tween {
 		}
 		return this;
 	}
+	
+	public function removeTweensOf(target:Dynamic) {
+		var removeList:Array<Tween> = [];
+		var c = next;
+		while (c != null) {
+			if (c.target == target) {
+				removeList.push(c);
+			}
+			c = c.next;
+		}
+		for (t in removeList) {
+			t.remove();
+		}
+	}
+	
+	override public function abort():Void {
+		complete = true;
+	}
+	
+	public function skipCurrent() {
+		if (next != null) next.skip(true);
+	}
 	public function length():Int {
 		var i = 0;
 		var n = next;
@@ -226,6 +261,16 @@ class Delta
 	
 	public static function tween(target:Dynamic):Tween {
 		return createSequence(target).createStep();
+	}
+	
+	public static function delayCall(func:Void->Void, interval:Float):Tween {
+		return createSequence(null).wait(interval).onComplete(func);
+	}
+	
+	public static function removeTweensOf(target:Dynamic) {
+		for (s in sequences) {
+			s.removeTweensOf(target);
+		}
 	}
 
 	public static function step(delta:Float) {
