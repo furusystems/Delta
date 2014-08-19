@@ -6,6 +6,17 @@ Game-focused Tweening library for Haxe 3
 Primary purpose is simply to have better control of timing issues.
 Secondary goals are syntactic: Provide a nice quick way to control and synchronize animations of float properties.
 
+Inspired, of course, by the standards, TweenLite and Actuate. Tween functions adapted from Actuate's adaptions of [The Classics](http://www.robertpenner.com/easing/). 
+
+Key API difference from Actuate is Delta defines "a tween" as a linked list of Tween actions, which is consumed action by action until the full list is empty. This means tweens are inherently sequenced, allowing the rapid creaton of sequences of tweens. It also allows for some synchronization, such as one tween sequence waiting for a trigger ID before proceeding, which can be dispatched either from another tween sequence, or from Delta itself.
+
+Ease functions are simplified to the signature Float->Float->Float->Float...
+
+	Delta.tween(myObject).ease( function(startValue:Float, deltaValue:Float, t:Float):Float
+
+...where startValue is the initial value, deltaValue is the difference between the start value and the target value, and t is a scalar between 0 and 1.
+
+
     package ;
     
     import flash.display.Sprite;
