@@ -7,84 +7,6 @@ import tween.easing.Linear;
  */
 
 private typedef TweenFunc = Float->Float->Float->Float;
- 
-@:allow(tween)
-private class TweenTimer {
-	var clock:Float = 0;
-	var interval:Float;
-	var func:Void->Void;
-	var running:Bool;
-	var repeating:Bool;
-	
-	/**
-	 * Private constructor, use static factory methods
-	 */
-	function new() { }
-	
-	public function step(delta:Float) {
-		
-		clock += delta;
-		if (clock >= interval) {
-			func();
-			if (!repeating) {
-				stop();
-			}else {
-				clock -= interval;
-			}
-		}
-		
-	}
-	
-	public inline function stop():TweenTimer {
-		//Halting the timer indicates to the update function that it is available to be disposed
-		running = false;
-		return this;
-	}
-	
-	public inline function run():TweenTimer {
-		running = true;
-		return this;
-	}
-	
-	static var timers:Array<TweenTimer> = [];
-	
-	public static function delay(func:Void->Void, interval:Float):TweenTimer {
-		
-		var t = new TweenTimer();
-		t.func = func;
-		t.interval = interval;
-		timers.push(t);
-		return t.run();
-	}
-	
-	public static function repeat(func:Void->Void, interval:Float):TweenTimer {
-		
-		var t = new TweenTimer();
-		t.func = func;
-		t.interval = interval;
-		timers.push(t);
-		t.repeating = true;
-		return t.run();
-	}
-	
-	/**
-	 * Advance every timer's clock by a common delta
-	 * @param	delta
-	 */
-	public static function stepTimers(delta:Float) {
-		var count = timers.length;
-		
-		/*
-		 * Looping backwards to enable this loop to run as a removal loop.
-		 */
-		while (count-- > 0) {
-			var t = timers[count];
-			t.step(delta);
-			if (t.running) continue;
-			timers.splice(count, 1);
-		}
-	}
-}
 
 private class PropertyTween {
 	public var tween:Tween;
@@ -198,6 +120,11 @@ private class Tween {
 	
 	#if release inline #end 
 	public function createStep():Tween {
+		return append(new Tween(target));
+	}
+	
+	#if release inline #end 
+	public function tween(target:Dynamic):Tween {
 		return append(new Tween(target));
 	}
 	
