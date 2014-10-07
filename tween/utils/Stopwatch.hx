@@ -6,13 +6,16 @@ package tween.utils;
  */
 class Stopwatch
 {
+	static var sample:Float = 0.0;
 	public static var time:Float = 0.0;
 	public static var delta:Float;
 	public static inline function tick():Void {
-		time = getTime();
+		sample = getTime();
 	}
 	public static inline function tock():Float {
-		return delta = getTime() - time;
+		delta = getTime() - sample;
+		time += delta;
+		return delta;
 	}
 	static inline function getTime():Float {
 		#if flash

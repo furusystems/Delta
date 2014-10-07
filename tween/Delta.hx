@@ -287,6 +287,7 @@ class Delta
 	function new() { }
 	
 	static var sequences:Array<TweenSequence> = [];
+	public static var time:Float = 0.0;
 	public static var timeScale:Float = 1.0;
 	public static var defaultTweenFunc:TweenFunc = Linear.none;
 	static var count:Int = 0;
@@ -320,6 +321,7 @@ class Delta
 
 	public static function step(delta:Float) {
 		delta *= timeScale;
+		time += delta;
 		var n = sequences.length;
 		while (n-->0) {
 			var s = sequences[n];
