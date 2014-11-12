@@ -134,13 +134,13 @@ private class FuncTween extends PropertyTween {
 
 } //FuncTween
 
-private class ArrayTween extends PropertyTween {
+private class IndexTween extends PropertyTween {
 
 	public var index:Int;
 
 	#if release inline #end
-	public function new(tween:TweenAction, name:String, index:Int, to:Float, duration:Float) {
-		super(tween, name, to, duration);
+	public function new(tween:TweenAction, index:Int, to:Float, duration:Float) {
+		super(tween, Std.string(index), to, duration);
 		this.index = index;
 	}
 
@@ -156,7 +156,7 @@ private class ArrayTween extends PropertyTween {
 		tween.target[index] = val;
 	}
 
-} //ArrayTween
+} //IndexTween
 
 
 private class TweenAction {
@@ -247,10 +247,10 @@ private class TweenAction {
 	}
 
 	#if release inline #end
-	public function array(property:String, index:Int, value:Float, duration:Float):TweenAction {
+	public function index(index:Int, value:Float, duration:Float):TweenAction {
 		if(properties==null) properties = new Map();
 		totalDuration = Math.max(totalDuration, duration);
-		properties.set(property, prevPropCreated = new ArrayTween(this, property, index, value, duration));
+		properties.set(Std.string(index), prevPropCreated = new IndexTween(this, index, value, duration));
 		return this;
 	}
 
