@@ -8,7 +8,30 @@ import tween.easing.Linear;
 
 private typedef TweenFunc = Float->Float->Float->Float;
 
-private class PropertyTween {
+	//value = get(name)
+private typedef FTGetFunc = String->Float;
+	//set(name, value, t_for_convenience)
+private typedef FTSetFunc = String->Float->Float->Void;
+
+interface Tweenable {
+
+	public var tween:TweenAction;
+	public var complete:Bool;
+	public var name:String;
+	public var tweenFunc:TweenFunc;
+	public var from:Float;
+	public var to:Float;
+
+	@:noCompletion
+	public var hasUpdated:Bool;
+
+	public function check():Void;
+	public function step(delta:Float):Void;
+
+} //Tweenable
+
+private class PropertyTween implements Tweenable {
+
 	public var tween:TweenAction;
 	public var duration:Float;
 	public var durationR:Float;
@@ -21,9 +44,11 @@ private class PropertyTween {
 	public var tweenFunc:TweenFunc;
 	public var complete:Bool;
 	public var name:String;
-	var hasUpdated:Bool;
-	
-	#if release inline #end 
+
+	@:noCompletion
+	public var hasUpdated:Bool;
+
+	#if release inline #end
 	public function new(tween:TweenAction, name:String, to:Float, duration:Float) {
 		tweenFunc = Delta.defaultTweenFunc;
 		this.duration = duration;
@@ -33,17 +58,25 @@ private class PropertyTween {
 		this.name = name;
 		time = 0.0;
 	}
-	public inline function init() {
+
+	#if release inline #end
+	function init(from:Float) {
 		if(!hasUpdated){
-			from = Reflect.getProperty(tween.target, name);
+			this.from = from;
 			difference = to - from;
 			hasUpdated = true;
 		}
 	}
-	
-	#if release inline #end 
-	public function step(delta:Float) {
-		init();
+
+	#if release inline #end
+	public function check()
+	{
+		init( Reflect.getProperty(tween.target, name) );
+	}
+
+	#if release inline #end
+	public function step(delta:Float)
+	{
 		time += delta;
 		var c = current;
 		if (time > duration) {
@@ -54,25 +87,85 @@ private class PropertyTween {
 			var rt = Math.max(0, time);
 			c = tweenFunc(from, difference, time * durationR);
 		}
-		apply(c);
+		refresh(c);
 	}
-	
+
 	#if release inline #end
-	function apply(val:Float) 
+	function apply(val:Float)
+	{
+		Reflect.setProperty(tween.target, name, val);
+	}
+
+	#if release inline #end
+	function refresh(val:Float)
 	{
 		if (val != current) {
-			Reflect.setProperty(tween.target, name, current = val);
+			apply(current = val);
 		}
 	}
 }
 
+
+private class FuncTween extends PropertyTween {
+
+	public var getFunc:FTGetFunc;
+	public var setFunc:FTSetFunc;
+
+	#if release inline #end
+	public function new(tween:TweenAction, name:String, to:Float, duration:Float, getFunc:FTGetFunc, setFunc:FTSetFunc) {
+
+		super(tween, name, to, duration);
+
+		this.getFunc = getFunc;
+		this.setFunc = setFunc;
+	}
+
+	#if release inline #end
+	override public function check()
+	{
+		init(getFunc(name));
+	}
+
+	#if release inline #end
+	override function apply(val:Float)
+	{
+		setFunc(name, val, time/duration);
+	}
+
+} //FuncTween
+
+private class ArrayTween extends PropertyTween {
+
+	public var index:Int;
+
+	#if release inline #end
+	public function new(tween:TweenAction, name:String, index:Int, to:Float, duration:Float) {
+		super(tween, name, to, duration);
+		this.index = index;
+	}
+
+	#if release inline #end
+	override public function check()
+	{
+		init(tween.target[index]);
+	}
+
+	#if release inline #end
+	override function apply(val:Float)
+	{
+		tween.target[index] = val;
+	}
+
+} //ArrayTween
+
+
 private class TweenAction {
 	var prev:Null<TweenAction>;
 	var next:Null<TweenAction>;
-	var properties:Null<Map<String, PropertyTween>>;
+	var properties:Null<Map<String, Tweenable>>;
 	var time:Float;
 	var totalDuration:Float;
-	var prevPropCreated:Null<PropertyTween>;
+	var prevPropCreated:Null<Tweenable>;
 	var onCompleteFunc:Null < Void->Void > ;
 	var triggeringID:Null<String>;
 	var triggerID:Null<String>;
@@ -82,15 +175,15 @@ private class TweenAction {
 		time = totalDuration = 0.0;
 		this.target = target;
 	}
-	
-	
-	#if release inline #end 
+
+
+	#if release inline #end
 	function append(t:TweenAction):TweenAction {
 		next = t;
 		t.prev = this;
 		return t;
 	}
-	#if release inline #end 
+	#if release inline #end
 	function remove() {
 		if (prev != null) {
 			prev.next = next;
@@ -99,12 +192,12 @@ private class TweenAction {
 			next.prev = prev;
 		}
 	}
-	
+
 	public inline function onComplete(func:Void->Void):TweenAction {
 		onCompleteFunc = func;
 		return this;
 	}
-	
+
 	public inline function ease(func:Float->Float->Float->Float, all:Bool = true):TweenAction {
 		if (all) {
 			for (p in properties) p.tweenFunc = func;
@@ -113,42 +206,58 @@ private class TweenAction {
 		}
 		return this;
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
 	public function wait(duration:Float):TweenAction {
 		var step = createAction();
 		step.totalDuration = duration;
 		return step.createAction();
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
 	public function waitForTrigger(id:String):TweenAction {
 		var step = createAction();
 		step.triggeringID = id;
 		return step.createAction();
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
 	public function trigger(id:String, onComplete:Bool = false):TweenAction {
 		triggerOnComplete = onComplete;
 		triggerID = id;
 		return this;
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
 	public function createAction():TweenAction {
 		return append(new TweenAction(target));
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
 	public function tween(target:Dynamic):TweenAction {
 		return append(new TweenAction(target));
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
+	public function func(property:String, value:Float, duration:Float, g:FTGetFunc, s:FTSetFunc):TweenAction {
+		if(properties==null) properties = new Map();
+		totalDuration = Math.max(totalDuration, duration);
+		properties.set(property, prevPropCreated = new FuncTween(this, property, value, duration, g, s));
+		return this;
+	}
+
+	#if release inline #end
+	public function array(property:String, index:Int, value:Float, duration:Float):TweenAction {
+		if(properties==null) properties = new Map();
+		totalDuration = Math.max(totalDuration, duration);
+		properties.set(property, prevPropCreated = new ArrayTween(this, property, index, value, duration));
+		return this;
+	}
+
+	#if release inline #end
 	public function prop(property:String, value:Float, duration:Float):TweenAction {
-		
-		if(properties==null) properties = new Map<String,PropertyTween>();
+
+		if(properties==null) properties = new Map();
 		#if debug
 			if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
 			//TODO: Check if the field is a property or not and if so, warn
@@ -157,15 +266,15 @@ private class TweenAction {
 		properties.set(property, prevPropCreated = new PropertyTween(this, property, value, duration));
 		return this;
 	}
-	
-	#if release inline #end 
+
+	#if release inline #end
 	public function propMultiple(properties:Dynamic, duration:Float):TweenAction {
 		for (p in Reflect.fields(properties)) {
 			prop(p, Reflect.getProperty(properties, p), duration);
 		}
 		return this;
 	}
-	
+
 	/**
 	 * Complete this node's properties and proceed to the next one
 	 * @param	ffwd
@@ -177,8 +286,8 @@ private class TweenAction {
 		time = totalDuration;
 		finish();
 	}
-	
-	inline function finish() 
+
+	inline function finish()
 	{
 		if (onCompleteFunc != null) onCompleteFunc();
 		if (triggerID != null && triggerOnComplete) {
@@ -187,11 +296,11 @@ private class TweenAction {
 		}
 		remove();
 	}
-	
+
 	public function abort():Void {
 		getSequence().abort();
 	}
-	
+
 	public function getSequence():TweenSequence {
 		var n = prev;
 		while (n != null) {
@@ -200,7 +309,7 @@ private class TweenAction {
 		}
 		return null;
 	}
-	
+
 	public function step(delta:Float):TweenAction {
 		if (totalDuration == -1 || triggeringID != null) return this;
 		if (!triggerOnComplete && triggerID != null) {
@@ -210,6 +319,7 @@ private class TweenAction {
 		var allComplete:Bool = true;
 		if (properties != null) {
 			for (p in properties) {
+				if(!p.hasUpdated) p.check();
 				p.step(delta);
 				if (!p.complete) allComplete = false;
 			}
@@ -237,7 +347,7 @@ private class TweenSequence extends TweenAction {
 		}
 		return this;
 	}
-	
+
 	public function removeTweensOf(target:Dynamic) {
 		var removeList:Array<TweenAction> = [];
 		var c = next;
@@ -251,7 +361,7 @@ private class TweenSequence extends TweenAction {
 			t.remove();
 		}
 	}
-	
+
 	function runTrigger(t:String) {
 		var n = next;
 		while (n != null) {
@@ -262,11 +372,11 @@ private class TweenSequence extends TweenAction {
 			n = n.next;
 		}
 	}
-	
+
 	override public function abort():Void {
 		complete = true;
 	}
-	
+
 	public function skipCurrent() {
 		if (next != null) next.skip(true);
 	}
@@ -285,34 +395,34 @@ private class TweenSequence extends TweenAction {
 class Delta
 {
 	function new() { }
-	
+
 	static var sequences:Array<TweenSequence> = [];
 	public static var time:Float = 0.0;
 	public static var timeScale:Float = 1.0;
 	public static var defaultTweenFunc:TweenFunc = Linear.none;
 	static var count:Int = 0;
-	
-	#if release inline #end 
+
+	#if release inline #end
 	static function createSequence(target:Dynamic):TweenSequence {
-		var s = new TweenSequence(target); 
+		var s = new TweenSequence(target);
 		sequences.push(s);
 		return s;
 	}
-	
+
 	public static function runTrigger(t:String) {
 		for (s in sequences) {
 			s.runTrigger(t);
 		}
 	}
-	
+
 	public static function tween(target:Dynamic):TweenAction {
 		return createSequence(target).createAction();
 	}
-	
+
 	public static function delayCall(func:Void->Void, interval:Float):TweenAction {
 		return createSequence(null).wait(interval).onComplete(func);
 	}
-	
+
 	public static function removeTweensOf(target:Dynamic) {
 		for (s in sequences) {
 			s.removeTweensOf(target);
@@ -340,5 +450,5 @@ class Delta
 			}
 		}
 	}
-	
+
 }
