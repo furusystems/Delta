@@ -1,17 +1,13 @@
 package tween;
 import tween.easing.Linear;
+import tween.tweens.PropertyTween;
 
 /**
  * ...
  * @author Andreas Rønning
  */
 
-private typedef TweenFunc = Float->Float->Float->Float;
-
-	//value = get(name)
-private typedef FTGetFunc = String->Float;
-	//set(name, value, t_for_convenience)
-private typedef FTSetFunc = String->Float->Float->Void;
+typedef TweenFunc = Float->Float->Float->Float;
 
 interface Tweenable {
 
@@ -30,136 +26,9 @@ interface Tweenable {
 
 } //Tweenable
 
-private class PropertyTween implements Tweenable {
 
-	public var tween:TweenAction;
-	public var duration:Float;
-	public var durationR:Float;
-	public var time:Float;
-	public var isProperty:Bool;
-	public var from:Float;
-	public var to:Float;
-	public var difference:Float;
-	public var current:Float;
-	public var tweenFunc:TweenFunc;
-	public var complete:Bool;
-	public var name:String;
-
-	@:noCompletion
-	public var hasUpdated:Bool;
-
-	#if release inline #end
-	public function new(tween:TweenAction, name:String, to:Float, duration:Float) {
-		tweenFunc = Delta.defaultTweenFunc;
-		this.duration = duration;
-		this.durationR = 1 / duration;
-		this.tween = tween;
-		this.to = to;
-		this.name = name;
-		time = 0.0;
-	}
-
-	#if release inline #end
-	function init(from:Float) {
-		if(!hasUpdated){
-			this.from = from;
-			difference = to - from;
-			hasUpdated = true;
-		}
-	}
-
-	#if release inline #end
-	public function check()
-	{
-		init( Reflect.getProperty(tween.target, name) );
-	}
-
-	#if release inline #end
-	public function step(delta:Float)
-	{
-		time += delta;
-		var c = current;
-		if (time > duration) {
-			time = duration;
-			c = from + difference;
-			complete = true;
-		}else {
-			var rt = Math.max(0, time);
-			c = tweenFunc(from, difference, time * durationR);
-		}
-		refresh(c);
-	}
-
-	#if release inline #end
-	function apply(val:Float)
-	{
-		Reflect.setProperty(tween.target, name, val);
-	}
-
-	#if release inline #end
-	function refresh(val:Float)
-	{
-		if (val != current) {
-			apply(current = val);
-		}
-	}
-}
-
-
-private class FuncTween extends PropertyTween {
-
-	public var getFunc:FTGetFunc;
-	public var setFunc:FTSetFunc;
-
-	#if release inline #end
-	public function new(tween:TweenAction, name:String, to:Float, duration:Float, getFunc:FTGetFunc, setFunc:FTSetFunc) {
-
-		super(tween, name, to, duration);
-
-		this.getFunc = getFunc;
-		this.setFunc = setFunc;
-	}
-
-	#if release inline #end
-	override public function check()
-	{
-		init(getFunc(name));
-	}
-
-	#if release inline #end
-	override function apply(val:Float)
-	{
-		setFunc(name, val, time/duration);
-	}
-
-} //FuncTween
-
-private class IndexTween extends PropertyTween {
-
-	public var index:Int;
-
-	#if release inline #end
-	public function new(tween:TweenAction, index:Int, to:Float, duration:Float) {
-		super(tween, Std.string(index), to, duration);
-		this.index = index;
-	}
-
-	#if release inline #end
-	override public function check()
-	{
-		init(tween.target[index]);
-	}
-
-	#if release inline #end
-	override function apply(val:Float)
-	{
-		tween.target[index] = val;
-	}
-
-} //IndexTween
-
-
-private class TweenAction {
+@:build(tween.actions.Inject.init())
+class TweenAction {
 	var prev:Null<TweenAction>;
 	var next:Null<TweenAction>;
 	var properties:Null<Map<String, Tweenable>>;
@@ -239,27 +108,11 @@ private class TweenAction {
 	}
 
 	#if release inline #end
-	public function func(property:String, value:Float, duration:Float, g:FTGetFunc, s:FTSetFunc):TweenAction {
-		if(properties==null) properties = new Map();
-		totalDuration = Math.max(totalDuration, duration);
-		properties.set(property, prevPropCreated = new FuncTween(this, property, value, duration, g, s));
-		return this;
-	}
-
-	#if release inline #end
-	public function index(index:Int, value:Float, duration:Float):TweenAction {
-		if(properties==null) properties = new Map();
-		totalDuration = Math.max(totalDuration, duration);
-		properties.set(Std.string(index), prevPropCreated = new IndexTween(this, index, value, duration));
-		return this;
-	}
-
-	#if release inline #end
 	public function prop(property:String, value:Float, duration:Float):TweenAction {
 
 		if(properties==null) properties = new Map();
 		#if debug
-			if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
+			// if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
 			//TODO: Check if the field is a property or not and if so, warn
 		#end
 		totalDuration = Math.max(totalDuration, duration);
