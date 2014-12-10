@@ -30,6 +30,7 @@ interface Tweenable {
 
 @:build(tween.actions.Inject.init())
 class TweenAction {
+
 	var prev:Null<TweenAction>;
 	var next:Null<TweenAction>;
 	var tweens:Null<Map<String, Tweenable>>;
@@ -40,10 +41,18 @@ class TweenAction {
 	var triggeringID:Null<String>;
 	var triggerID:Null<String>;
 	var triggerOnComplete:Bool;
+
 	public var target:Dynamic;
 	public function new(target:Dynamic) {
 		time = totalDuration = 0.0;
 		this.target = target;
+	}
+
+	function createTween(property:String, duration:Float, tween:Tweenable) {
+		if(tweens==null) tweens = new Map();
+		totalDuration = Math.max(totalDuration, duration);
+        tweens.set(property, prevCreated = tween);
+        return this;
 	}
 
 
@@ -53,6 +62,7 @@ class TweenAction {
 		t.prev = this;
 		return t;
 	}
+
 	#if release inline #end
 	function remove() {
 		if (prev != null) {
@@ -111,14 +121,12 @@ class TweenAction {
 	#if release inline #end
 	public function prop(property:String, value:Float, duration:Float):TweenAction {
 
-		if(tweens==null) tweens = new Map();
 		#if debug
 			// if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
 			//TODO: Check if the field is a property or not and if so, warn
 		#end
-		totalDuration = Math.max(totalDuration, duration);
-		tweens.set(property, prevCreated = new FloatTween(this, property, value, duration));
-		return this;
+
+		return createTween(property, duration, new FloatTween(this, property, value, duration));
 	}
 
 	#if release inline #end
