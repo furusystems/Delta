@@ -77,14 +77,16 @@ class TweenAction {
 		}
 	}
 
-	public inline function onComplete(func:Void->Void):TweenAction {
+	#if release inline #end
+	public function onComplete(func:Void->Void):TweenAction {
 		onCompleteFunc = func;
 		return this;
 	}
 
-	public inline function ease(func:Float->Float->Float->Float, all:Bool = true):TweenAction {
+	#if release inline #end
+	public function ease(func:Float->Float->Float->Float, all:Bool = true):TweenAction {
 		if (all) {
-			for (p in tweens) p.tweenFunc = func;
+			if(tweens != null) for (p in tweens) p.tweenFunc = func;
 		}else {
 			if (prevCreated != null ) prevCreated.tweenFunc = func;
 		}
@@ -134,7 +136,8 @@ class TweenAction {
 		finish();
 	}
 
-	inline function finish()
+	#if release inline #end
+	function finish()
 	{
 		if (onCompleteFunc != null) onCompleteFunc();
 		if (triggerID != null && triggerOnComplete) {
@@ -241,8 +244,6 @@ private class TweenSequence extends TweenAction {
 @:allow(tween.TweenAction)
 class Delta
 {
-	function new() { }
-
 	static var sequences:Array<TweenSequence> = [];
 	public static var time:Float = 0.0;
 	public static var timeScale:Float = 1.0;
