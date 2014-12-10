@@ -2,7 +2,7 @@ package tween.tweens;
 
 import tween.Delta;
 
-class PropertyTween implements Tweenable {
+class FloatTween implements Tweenable {
 
     public var tween:TweenAction;
     public var duration:Float;
@@ -41,12 +41,6 @@ class PropertyTween implements Tweenable {
     }
 
     #if release inline #end
-    public function check()
-    {
-        init( Reflect.getProperty(tween.target, name) );
-    }
-
-    #if release inline #end
     public function step(delta:Float)
     {
         time += delta;
@@ -59,7 +53,21 @@ class PropertyTween implements Tweenable {
             var rt = Math.max(0, time);
             c = tweenFunc(from, difference, time * durationR);
         }
-        refresh(c);
+        set(c);
+    }
+
+    #if release inline #end
+    public function set(val:Float)
+    {
+        if (val != current) {
+            apply(current = val);
+        }
+    }
+
+    #if release inline #end
+    public function check()
+    {
+        init( Reflect.getProperty(tween.target, name) );
     }
 
     #if release inline #end
@@ -68,11 +76,4 @@ class PropertyTween implements Tweenable {
         Reflect.setProperty(tween.target, name, val);
     }
 
-    #if release inline #end
-    function refresh(val:Float)
-    {
-        if (val != current) {
-            apply(current = val);
-        }
-    }
 }

@@ -1,6 +1,6 @@
 package tween;
 import tween.easing.Linear;
-import tween.tweens.PropertyTween;
+import tween.tweens.FloatTween;
 
 /**
  * ...
@@ -23,6 +23,7 @@ interface Tweenable {
 
 	public function check():Void;
 	public function step(delta:Float):Void;
+	public function set(val:Float):Void;
 
 } //Tweenable
 
@@ -31,10 +32,10 @@ interface Tweenable {
 class TweenAction {
 	var prev:Null<TweenAction>;
 	var next:Null<TweenAction>;
-	var properties:Null<Map<String, Tweenable>>;
+	var tweens:Null<Map<String, Tweenable>>;
 	var time:Float;
 	var totalDuration:Float;
-	var prevPropCreated:Null<Tweenable>;
+	var prevCreated:Null<Tweenable>;
 	var onCompleteFunc:Null < Void->Void > ;
 	var triggeringID:Null<String>;
 	var triggerID:Null<String>;
@@ -69,9 +70,9 @@ class TweenAction {
 
 	public inline function ease(func:Float->Float->Float->Float, all:Bool = true):TweenAction {
 		if (all) {
-			for (p in properties) p.tweenFunc = func;
+			for (p in tweens) p.tweenFunc = func;
 		}else {
-			if (prevPropCreated != null ) prevPropCreated.tweenFunc = func;
+			if (prevCreated != null ) prevCreated.tweenFunc = func;
 		}
 		return this;
 	}
@@ -110,31 +111,31 @@ class TweenAction {
 	#if release inline #end
 	public function prop(property:String, value:Float, duration:Float):TweenAction {
 
-		if(properties==null) properties = new Map();
+		if(tweens==null) tweens = new Map();
 		#if debug
 			// if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
 			//TODO: Check if the field is a property or not and if so, warn
 		#end
 		totalDuration = Math.max(totalDuration, duration);
-		properties.set(property, prevPropCreated = new PropertyTween(this, property, value, duration));
+		tweens.set(property, prevCreated = new FloatTween(this, property, value, duration));
 		return this;
 	}
 
 	#if release inline #end
-	public function propMultiple(properties:Dynamic, duration:Float):TweenAction {
-		for (p in Reflect.fields(properties)) {
-			prop(p, Reflect.getProperty(properties, p), duration);
+	public function propMultiple(tweens:Dynamic, duration:Float):TweenAction {
+		for (p in Reflect.fields(tweens)) {
+			prop(p, Reflect.getProperty(tweens, p), duration);
 		}
 		return this;
 	}
 
 	/**
-	 * Complete this node's properties and proceed to the next one
+	 * Complete this node's tweens and proceed to the next one
 	 * @param	ffwd
 	 */
 	public function skip(ffwd:Bool) {
-		for (p in properties) {
-			Reflect.setProperty(target, p.name, p.to);
+		for (p in tweens) {
+			p.set(p.to);
 		}
 		time = totalDuration;
 		finish();
@@ -170,8 +171,8 @@ class TweenAction {
 			triggerID = null;
 		}
 		var allComplete:Bool = true;
-		if (properties != null) {
-			for (p in properties) {
+		if (tweens != null) {
+			for (p in tweens) {
 				if(!p.hasUpdated) p.check();
 				p.step(delta);
 				if (!p.complete) allComplete = false;

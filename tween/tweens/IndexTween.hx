@@ -1,8 +1,8 @@
 package tween.actions;
 
-import tween.tweens.PropertyTween;
+import tween.tweens.FloatTween;
 
-private class IndexTween extends PropertyTween {
+private class IndexTween extends FloatTween {
 
     public var index:Int;
 

@@ -1,13 +1,13 @@
 package tween.actions;
 
-import tween.tweens.PropertyTween;
+import tween.tweens.FloatTween;
 
     //value = get(name)
 private typedef FTGetFunc = String->Float;
     //set(name, value, t_for_convenience)
 private typedef FTSetFunc = String->Float->Float->Void;
 
-private class FuncTween extends PropertyTween {
+private class FuncTween extends FloatTween {
 
     public var getFunc:FTGetFunc;
     public var setFunc:FTSetFunc;
