@@ -1,6 +1,11 @@
 package tween.tweens;
-
 import tween.Delta;
+
+/**
+ * ...
+ * @author Andreas Rønning
+ * @author Sven Bergström
+ */
 
 class FloatTween implements Tweenable {
 

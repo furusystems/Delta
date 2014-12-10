@@ -1,10 +1,13 @@
 package tween;
 import tween.easing.Linear;
 import tween.tweens.FloatTween;
+import tween.tweens.IndexTween;
+import tween.tweens.FuncTween;
 
 /**
  * ...
  * @author Andreas Rønning
+ * @author Sven Bergström
  */
 
 typedef TweenFunc = Float->Float->Float->Float;
@@ -18,12 +21,13 @@ interface Tweenable {
 	public var from:Float;
 	public var to:Float;
 
-	@:noCompletion
-	public var hasUpdated:Bool;
-
-	public function check():Void;
 	public function step(delta:Float):Void;
 	public function set(val:Float):Void;
+
+	@:allow(TweenAction)
+		function check():Void;
+	@:allow(TweenAction)
+		var hasUpdated:Bool;
 
 } //Tweenable
 
@@ -116,25 +120,6 @@ class TweenAction {
 	#if release inline #end
 	public function tween(target:Dynamic):TweenAction {
 		return append(new TweenAction(target));
-	}
-
-	#if release inline #end
-	public function prop(property:String, value:Float, duration:Float):TweenAction {
-
-		#if debug
-			// if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
-			//TODO: Check if the field is a property or not and if so, warn
-		#end
-
-		return createTween(property, duration, new FloatTween(this, property, value, duration));
-	}
-
-	#if release inline #end
-	public function propMultiple(tweens:Dynamic, duration:Float):TweenAction {
-		for (p in Reflect.fields(tweens)) {
-			prop(p, Reflect.getProperty(tweens, p), duration);
-		}
-		return this;
 	}
 
 	/**

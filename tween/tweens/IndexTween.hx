@@ -1,8 +1,13 @@
-package tween.actions;
-
+package tween.tweens;
+import tween.Delta;
 import tween.tweens.FloatTween;
 
-private class IndexTween extends FloatTween {
+/**
+ * ...
+ * @author Sven Bergström
+ */
+
+class IndexTween extends FloatTween {
 
     public var index:Int;
 

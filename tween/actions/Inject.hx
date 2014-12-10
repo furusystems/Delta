@@ -28,7 +28,7 @@ class Inject {
                 if( !sys.FileSystem.exists(cp) || !sys.FileSystem.isDirectory(cp) )
                     continue;
 
-                var ext = Path.join([cp, 'tween','ext']);
+                var ext = Path.join([cp, 'tween','actions']);
                 if(sys.FileSystem.exists(ext) && sys.FileSystem.isDirectory(ext)) {
                     for( file in sys.FileSystem.readDirectory(ext) ) {
                         if( StringTools.endsWith(file, ".hx") ) {
