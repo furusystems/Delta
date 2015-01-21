@@ -74,6 +74,7 @@ private class TweenAction {
 	var totalDuration:Float;
 	var prevPropCreated:Null<PropertyTween>;
 	var onCompleteFunc:Null < Void->Void > ;
+	var onStepFunc:Null < Float->Void > ;
 	var triggeringID:Null<String>;
 	var triggerID:Null<String>;
 	var triggerOnComplete:Bool;
@@ -98,6 +99,11 @@ private class TweenAction {
 		if (next != null) {
 			next.prev = prev;
 		}
+	}
+	
+	public inline function onUpdate(func:Float->Void):TweenAction {
+		onStepFunc = func;
+		return this;
 	}
 	
 	public inline function onComplete(func:Void->Void):TweenAction {
@@ -149,10 +155,6 @@ private class TweenAction {
 	public function prop(property:String, value:Float, duration:Float):TweenAction {
 		
 		if(properties==null) properties = new Map<String,PropertyTween>();
-		#if debug
-			if (!Reflect.hasField(target, property)) throw 'No property "$property" on object';
-			//TODO: Check if the field is a property or not and if so, warn
-		#end
 		totalDuration = Math.max(totalDuration, duration);
 		properties.set(property, prevPropCreated = new PropertyTween(this, property, value, duration));
 		return this;
@@ -217,6 +219,9 @@ private class TweenAction {
 		time += delta;
 		if (time >= totalDuration) {
 			finish();
+		}
+		if (onStepFunc != null) {
+			onStepFunc(time / totalDuration);
 		}
 		return this;
 	}
@@ -306,6 +311,7 @@ class Delta
 	}
 	
 	public static function tween(target:Dynamic):TweenAction {
+		if (target == null) throw "Cannot tween null target";
 		return createSequence(target).createAction();
 	}
 	
