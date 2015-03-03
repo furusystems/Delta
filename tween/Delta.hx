@@ -41,10 +41,12 @@ class TweenAction {
 	var time:Float;
 	var totalDuration:Float;
 	var prevCreated:Null<Tweenable>;
-	var onCompleteFunc:Null < Void->Void > ;
 	var triggeringID:Null<String>;
 	var triggerID:Null<String>;
 	var triggerOnComplete:Bool;
+	
+	var onCompleteFunc:Null<Void->Void>;
+	var onStepFunc:Null<Float->Void>;
 
 	public var target:Dynamic;
 	public function new(target:Dynamic) {
@@ -77,6 +79,12 @@ class TweenAction {
 		}
 	}
 
+	#if release inline #end
+	public function onUpdate(func:Float->Void):TweenAction {
+		onStepFunc = func;
+		return this;
+	}
+	
 	#if release inline #end
 	public function onComplete(func:Void->Void):TweenAction {
 		onCompleteFunc = func;
@@ -175,6 +183,9 @@ class TweenAction {
 			}
 		}
 		time += delta;
+		if (onStepFunc != null) {
+			onStepFunc(time / totalDuration);
+		}
 		if (time >= totalDuration) {
 			finish();
 		}

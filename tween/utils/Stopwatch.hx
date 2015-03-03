@@ -1,7 +1,7 @@
 package tween.utils;
 
 /**
- * ...
+ * Simple stopwatch. Tick first, then tock to get the delta.
  * @author Andreas Rønning
  */
 class Stopwatch
