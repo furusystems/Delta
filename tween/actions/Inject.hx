@@ -36,6 +36,8 @@ class Inject {
                                 cl = Path.join([ext, cl]);
                                 cl = cl.substr( cp.length, cl.length );
                                 cl = cl.split('/').join('.');
+								if (cl.charAt(0) == ".") 
+									cl = cl.substring(1); 
                             var type = Context.getType(cl);
                         } //haxe file
                     } //each file
