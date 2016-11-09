@@ -24,7 +24,7 @@ class Expo {
 		if (t == 1) {
 			return start + delta;
 		}
-		if ((t / 2.0) < 1.0) {
+		if ((t *= 2.0) < 1.0) {
 			return delta / 2 * Math.pow(2, 10 * (t - 1)) + start;
 		}
 		return delta / 2 * (2 - Math.pow(2, -10 * --t)) + start;
