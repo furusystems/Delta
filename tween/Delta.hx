@@ -287,6 +287,13 @@ class Delta
 			s.removeTweensOf(target);
 		}
 	}
+	
+	public static function reset() {
+		sequences = [];
+		time = 0;
+		timeScale = 1.0;
+		count = 0;
+	}
 
 	public static function step(delta:Float) {
 		delta *= timeScale;
