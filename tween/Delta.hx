@@ -1,4 +1,5 @@
 package tween;
+import tween.Delta.TweenAction;
 import tween.easing.Linear;
 import tween.tweens.FloatTween;
 import tween.tweens.IndexTween;
@@ -43,9 +44,9 @@ class TweenAction {
 	var prevCreated:Null<Tweenable>;
 	var triggeringID:Null<String>;
 	var triggerID:Null<String>;
-	var triggerOnComplete:Bool;
+	var triggerOnActionComplete:Bool;
 	
-	var onCompleteFunc:Null<Void->Void>;
+	var onActionCompleteFunc:Null<Void->Void>;
 	var onStepFunc:Null<Float->Void>;
 
 	public var target:Dynamic;
@@ -57,8 +58,8 @@ class TweenAction {
 	function createTween(property:String, duration:Float, tween:Tweenable) {
 		if(tweens==null) tweens = new Map();
 		totalDuration = Math.max(totalDuration, duration);
-        tweens.set(property, prevCreated = tween);
-        return this;
+    tweens.set(property, prevCreated = tween);
+    return this;
 	}
 
 
@@ -86,9 +87,15 @@ class TweenAction {
 	}
 	
 	#if release inline #end
-	public function onComplete(func:Void->Void):TweenAction {
-		onCompleteFunc = func;
+	public function onActionComplete(func:Void->Void):TweenAction {
+		onActionCompleteFunc = func;
 		return this;
+  }
+
+	#if release inline #end
+	public function onComplete(func:Void->Void):TweenAction {
+    trace("Deprecation warning: Please use 'onActionComplete' instead of 'onComplete'");
+    return onActionComplete(func);
 	}
 
 	#if release inline #end
@@ -116,8 +123,8 @@ class TweenAction {
 	}
 
 	#if release inline #end
-	public function trigger(id:String, onComplete:Bool = false):TweenAction {
-		triggerOnComplete = onComplete;
+	public function trigger(id:String, triggerOnActionComplete:Bool = false):TweenAction {
+		this.triggerOnActionComplete = triggerOnActionComplete;
 		triggerID = id;
 		return this;
 	}
@@ -134,9 +141,8 @@ class TweenAction {
 
 	/**
 	 * Complete this node's tweens and proceed to the next one
-	 * @param	ffwd
 	 */
-	public function skip(ffwd:Bool) {
+	public function skip() {
 		for (p in tweens) {
 			p.set(p.to);
 		}
@@ -147,8 +153,8 @@ class TweenAction {
 	#if release inline #end
 	function finish()
 	{
-		if (onCompleteFunc != null) onCompleteFunc();
-		if (triggerID != null && triggerOnComplete) {
+		if (onActionCompleteFunc != null) onActionCompleteFunc();
+		if (triggerID != null && triggerOnActionComplete) {
 			Delta.runTrigger(triggerID);
 			triggerID = null;
 		}
@@ -170,7 +176,7 @@ class TweenAction {
 
 	public function step(delta:Float):TweenAction {
 		if (totalDuration == -1 || triggeringID != null) return this;
-		if (!triggerOnComplete && triggerID != null) {
+		if (!triggerOnActionComplete && triggerID != null) {
 			Delta.runTrigger(triggerID);
 			triggerID = null;
 		}
@@ -279,7 +285,7 @@ class Delta
 	}
 
 	public static function delayCall(func:Void->Void, interval:Float):TweenAction {
-		return createSequence(null).wait(interval).onComplete(func);
+		return createSequence(null).wait(interval).onActionComplete(func);
 	}
 
 	public static function removeTweensOf(target:Dynamic) {
