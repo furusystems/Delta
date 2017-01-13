@@ -19,7 +19,7 @@ class Quint {
 	public static inline function easeInOut(start:Float, delta:Float, t:Float):Float {
 		t *= 2;
 		if (t < 1) {
-			return delta / 2 * t * t * t * t * t + b;
+			return delta / 2 * t * t * t * t * t + start;
 		}
 		return delta / 2 * ((t -= 2) * t * t * t * t + 2) + start;
 	}	
