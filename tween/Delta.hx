@@ -47,10 +47,12 @@ class TweenAction {
 	
 	var onCompleteFunc:Null<Void->Void>;
 	var onStepFunc:Null<Float->Void>;
+	var channel:TweenChannel;
 
 	public var target:Dynamic;
-	public function new(target:Dynamic) {
+	public inline function new(target:Dynamic, channel:TweenChannel) {
 		time = totalDuration = 0.0;
+		this.channel = channel;
 		this.target = target;
 	}
 
@@ -124,12 +126,12 @@ class TweenAction {
 
 	#if release inline #end
 	public function createAction():TweenAction {
-		return append(new TweenAction(target));
+		return append(new TweenAction(target, channel));
 	}
 
 	#if release inline #end
 	public function tween(target:Dynamic):TweenAction {
-		return append(new TweenAction(target));
+		return append(new TweenAction(target, channel));
 	}
 
 	/**
@@ -149,7 +151,7 @@ class TweenAction {
 	{
 		if (onCompleteFunc != null) onCompleteFunc();
 		if (triggerID != null && triggerOnComplete) {
-			Delta.runTrigger(triggerID);
+			channel.runTrigger(triggerID);
 			triggerID = null;
 		}
 		remove();
@@ -171,7 +173,7 @@ class TweenAction {
 	public function step(delta:Float):TweenAction {
 		if (totalDuration == -1 || triggeringID != null) return this;
 		if (!triggerOnComplete && triggerID != null) {
-			Delta.runTrigger(triggerID);
+			channel.runTrigger(triggerID);
 			triggerID = null;
 		}
 		var allComplete:Bool = true;
@@ -196,8 +198,8 @@ class TweenAction {
 @:allow(tween.Delta)
 private class TweenSequence extends TweenAction {
 	public var complete:Bool;
-	public function new(target:Dynamic) {
-		super(target);
+	public function new(target:Dynamic, channel:TweenChannel) {
+		super(target, channel);
 	}
 	override public function step(delta:Float):TweenAction {
 		if (complete) return this;
@@ -223,7 +225,7 @@ private class TweenSequence extends TweenAction {
 		}
 	}
 
-	function runTrigger(t:String) {
+	public function runTrigger(t:String) {
 		var n = next;
 		while (n != null) {
 			if (n.triggeringID == t) {
@@ -252,50 +254,46 @@ private class TweenSequence extends TweenAction {
 	}
 }
 
-@:allow(tween.TweenAction)
-class Delta
-{
-	static var sequences:Array<TweenSequence> = [];
-	public static var time:Float = 0.0;
-	public static var timeScale:Float = 1.0;
-	public static var defaultTweenFunc:TweenFunc = Linear.none;
-	static var count:Int = 0;
-
-	#if release inline #end
-	static function createSequence(target:Dynamic):TweenSequence {
-		var s = new TweenSequence(target);
+class TweenChannel{
+	public var time:Float = 0.0;
+	public var timeScale:Float = 1.0;
+	public var sequences:Array<TweenSequence> = [];
+	var count:Int = 0;
+	public inline function new(){ }
+	function createSequence(target:Dynamic):TweenSequence {
+		var s = new TweenSequence(target, this);
 		sequences.push(s);
 		return s;
 	}
 
-	public static function runTrigger(t:String) {
+	public function runTrigger(t:String) {
 		for (s in sequences) {
 			s.runTrigger(t);
 		}
 	}
 
-	public static function tween(target:Dynamic):TweenAction {
+	public function tween(target:Dynamic):TweenAction {
 		return createSequence(target).createAction();
 	}
 
-	public static function delayCall(func:Void->Void, interval:Float):TweenAction {
+	public function delayCall(func:Void->Void, interval:Float):TweenAction {
 		return createSequence(null).wait(interval).onComplete(func);
 	}
 
-	public static function removeTweensOf(target:Dynamic) {
+	public function removeTweensOf(target:Dynamic) {
 		for (s in sequences) {
 			s.removeTweensOf(target);
 		}
 	}
 	
-	public static function reset() {
+	public function reset() {
 		sequences = [];
 		time = 0;
 		timeScale = 1.0;
 		count = 0;
 	}
 
-	public static function step(delta:Float) {
+	public function step(delta:Float) {
 		delta *= timeScale;
 		time += delta;
 		var n = sequences.length;
@@ -316,5 +314,42 @@ class Delta
 			}
 		}
 	}
+}
 
+@:allow(tween.TweenAction)
+class Delta
+{
+	static var defaultChannel:TweenChannel = new TweenChannel();
+	static var channels:Array<TweenChannel> = [defaultChannel];
+	public static var defaultTweenFunc:TweenFunc = Linear.none;
+	
+	public static function channel(index:Int):TweenChannel {
+		if(index > channels.length-1 || channels[index] == null)
+			channels[index] = new TweenChannel();
+		return channels[index];
+	}
+
+	public static inline function runTrigger(t:String) {
+		defaultChannel.runTrigger(t);
+	}
+
+	public static inline function tween(target:Dynamic):TweenAction {
+		return defaultChannel.tween(target);
+	}
+
+	public static inline function delayCall(func:Void->Void, interval:Float):TweenAction {
+		return defaultChannel.delayCall(func, interval);
+	}
+
+	public static inline function removeTweensOf(target:Dynamic) {
+		defaultChannel.removeTweensOf(target);
+	}
+	
+	public static inline function reset() {
+		defaultChannel.reset();
+	}
+
+	public static inline function step(delta:Float) {
+		defaultChannel.step(delta);
+	}
 }
