@@ -53,7 +53,7 @@ class Inject {
     macro function apply() : Array<Field> {
 
         var fields = Context.getBuildFields();
-        var final = [];
+        var outFields = [];
 
         for( field in fields ) {
             var skip = false;
@@ -61,12 +61,12 @@ class Inject {
                 if(meta.name == ':tweenAction') {
                     inject_list.push(field);
                 } else {
-                    final.push(field);
+                    outFields.push(field);
                 }
             }
         }
 
-        return final;
+        return outFields;
 
     } //strip
 
